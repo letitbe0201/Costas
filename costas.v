@@ -35,7 +35,7 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
 
   /*FILTER COEFFICIENTS*/
   function integer filt_coef(input integer index); // Scale up to 1024
-  	case (index)
+    case (index)
       0:  filt_coef=2;
       1:  filt_coef=4;
       2:  filt_coef=4;
@@ -81,101 +81,53 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
       42: filt_coef=2;
       default:
           filt_coef=512;
-  	endcase // index
+    endcase // index
   endfunction
   /*FILTER COEFFICIENTS*/
 
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		cos_from_table  <= #1 0;
-  		msin_from_table <= #1 0;
-  	end else begin
-  		if (push_0)
-  		  {msin_from_table, cos_from_table} <= #1 scTable(nco[31:22]);
-  	end
+    if(reset) begin
+      cos_from_table  <= #1 0;
+      msin_from_table <= #1 0;
+    end else begin
+      if (push_0)
+        {msin_from_table, cos_from_table} <= #1 scTable(nco[31:22]);
+    end
   end
 
   function integer mul_1(input integer a, input integer b);
     mul_1 = a*b/512; // ADC is 10-bit -1~+1 (1 sign bit and 9 fractions)
   endfunction
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		filt_cos[0] <= #1 0;
-  		filt_sin[0] <= #1 0;
-  	end else begin
-  		if (push_1) begin
+    if(reset) begin
+      filt_cos[0] <= #1 0;
+      filt_sin[0] <= #1 0;
+    end else begin
+      if (push_1) begin
         // 10-bit from ADC * 16-bit from sin/cos table
-  		  filt_cos[0] <= #1 mul_1({{22{ADC_0[9]}},ADC_0}, {{16{cos_from_table[15]}}, cos_from_table});
-  		  filt_sin[0] <= #1 mul_1({{22{ADC_0[9]}},ADC_0}, {{16{msin_from_table[15]}},msin_from_table});
-  		end
-  	end
+        filt_cos[0] <= #1 mul_1({{22{ADC_0[9]}},ADC_0}, {{16{cos_from_table[15]}}, cos_from_table});
+        filt_sin[0] <= #1 mul_1({{22{ADC_0[9]}},ADC_0}, {{16{msin_from_table[15]}},msin_from_table});
+      end
+    end
   end
 
 /*Filters*/
   genvar x;
   generate
-  	for (x=1; x<43; x=x+1) begin
-  	  always @(negedge clk or posedge reset) begin
-  	  	if(reset) begin
-  	  		filt_cos[x] <= #1 0;
-  	  		filt_sin[x] <= #1 0;
-  	  	end else begin
-  	  		if (push_2) begin
-  	  		  filt_cos[x] <= #1 filt_cos[x-1];
-  	  		  filt_sin[x] <= #1 filt_sin[x-1];
-  	  		end
-  	  	end
-  	  end
-  	end
-  endgenerate
-/*
-  generate
-  	for (x=0; x<21; x=x+1) begin
-  	  always @(negedge clk or posedge reset) begin
-  	  	if(reset) begin
-  	  	  filt_cos_sum[x] <= #1 0;
-  	  	  filt_sin_sum[x] <= #1 0;
-  	  	end else begin
-  	  	  if (push_2) begin
-  	  	    filt_cos_sum[x] <= #1 filt_cos[x]+filt_cos[42-x];
-  	  	    filt_sin_sum[x] <= #1 filt_sin[x]+filt_sin[42-x];
-  	  	  end
-  	  	end
-  	  end
-  	end
-  endgenerate
-  always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		filt_cos_sum[21] <= #1 0;
-  		filt_sin_sum[21] <= #1 0;
-  	end else begin
-  		if (push_2) begin
-  		  filt_cos_sum[21] <= #1 filt_cos[21];
-  		  filt_sin_sum[21] <= #1 filt_sin[21];
-  		end
-  	end
-  end
-*/
-/*
-  genvar x2;
-  generate
-  	for(x2=0; x2<43; x2=x2+1) begin
-  	  always @(negedge clk or posedge reset) begin
-  	  	if(reset) begin
-  	  		filt_cos_mul[x2] <= #1 0;
-  	  		filt_sin_mul[x2] <= #1 0;
-  	  	end else begin
-  	  		if (push_3) begin
-//  	  		  filt_cos_mul[x2] <= #1 mul_f(filt_coef(x2), filt_cos[x2]);
-//  	  		  filt_sin_mul[x2] <= #1 mul_f(filt_coef(x2), filt_sin[x2]);
-            filt_cos_mul[x2] <= #1 (filt_coef(x2) * filt_cos[x2]);
-            filt_sin_mul[x2] <= #1 (filt_coef(x2) * filt_sin[x2]);
+    for (x=1; x<43; x=x+1) begin
+      always @(negedge clk or posedge reset) begin
+        if(reset) begin
+          filt_cos[x] <= #1 0;
+          filt_sin[x] <= #1 0;
+        end else begin
+          if (push_2) begin
+            filt_cos[x] <= #1 filt_cos[x-1];
+            filt_sin[x] <= #1 filt_sin[x-1];
           end
-  	  	end
-  	  end
-  	end
+        end
+      end
+    end
   endgenerate
-*/
 
   integer x2, x3;
   always @(negedge clk or posedge reset) begin
@@ -195,11 +147,11 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
   end
 
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		filt_cos_sum <= #1 0;
-  		filt_sin_sum <= #1 0;
-  	end else begin
-  		if (push_4) begin
+    if(reset) begin
+      filt_cos_sum <= #1 0;
+      filt_sin_sum <= #1 0;
+    end else begin
+      if (push_4) begin
           filt_cos_sum <= #1 filt_cos_mul[0]+  filt_cos_mul[1]+  filt_cos_mul[2]+
           filt_cos_mul[3]+   filt_cos_mul[4]+  filt_cos_mul[5]+  filt_cos_mul[6]+
           filt_cos_mul[7]+   filt_cos_mul[8]+  filt_cos_mul[9]+  filt_cos_mul[10]+
@@ -223,8 +175,8 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
           filt_sin_mul[31]+  filt_sin_mul[32]+ filt_sin_mul[33]+ filt_sin_mul[34]+
           filt_sin_mul[35]+  filt_sin_mul[36]+ filt_sin_mul[37]+ filt_sin_mul[38]+
           filt_sin_mul[39]+  filt_sin_mul[40]+ filt_sin_mul[41]+ filt_sin_mul[42];
-  		end
-  	end
+      end
+    end
   end
 /*Filters*/
 
@@ -243,138 +195,124 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
 
   always @(*) begin
     mul_2       = filt_cos_out*filt_sin_out;
-//    mul_2_out_d = {{16{mul_2[31]}}, mul_2[31:16]};
     mul_2_out_d = {{16{mul_2[31]}}, mul_2[31:16]}; // 16-bit Sin wave
   end
 
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		mul_2_out <= #1 0;
-  	end else begin
-  		if (push_6) begin
-  		  mul_2_out <= #1 mul_2_out_d;
-  	    end
-  	end
+    if(reset) begin
+      mul_2_out <= #1 0;
+    end else begin
+      if (push_6) begin
+        mul_2_out <= #1 mul_2_out_d;
+        end
+    end
   end
 
   always @(*) begin
-  	nco_d = nco;
-  	phase_d = phase;
-  	if (push_0) begin
-  	  nco_d = nco+phase;
-  	end
-  	if (push_7) begin
-  	  phase_d = 32'd429496729 + (mul_2_out<<14); // 2^32/10 & move up to meet 16 bit requirement
-//      phase_d = 32'd429496729 + (mul_2_out<<3); // 2^32/10
-  	end
+    nco_d = nco;
+    phase_d = phase;
+    if (push_0) begin
+      nco_d = nco+phase;
+    end
+    if (push_7) begin
+      phase_d = 32'd429496729 + (mul_2_out<<14); // 2^32/10 & move up to meet 16 bit requirement
+
+    end
   end
 
   integer y, z, ig1_1, ig1_2, ig2, ig3;
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		for (y=0; y<500; y=y+1) begin
-  			shift_reg[y] <= #1 0;
-  		end
-  	end else begin
-  		if (push_6) begin
-  			shift_reg[0] <= #1 filt_cos_out;
-  			for(y=1; y<500; y=y+1) begin
-  				shift_reg[y] <= #1 shift_reg[y-1];
-  			end
-  		end
-  	end
+    if(reset) begin
+      for (y=0; y<500; y=y+1) begin
+        shift_reg[y] <= #1 0;
+      end
+    end else begin
+      if (push_6) begin
+        shift_reg[0] <= #1 filt_cos_out;
+        for(y=1; y<500; y=y+1) begin
+          shift_reg[y] <= #1 shift_reg[y-1];
+        end
+      end
+    end
   end
 
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		for (z=0; z<100; z=z+1) begin
-  			gp_1[z] <= #1 0;
-  		end
-  	end else begin
-  		for (ig1_1=0; ig1_1<20; ig1_1=ig1_1+1) begin
-  			for (ig1_2=0; ig1_2<5; ig1_2=ig1_2+1) begin
-  				if (push_7) begin
-  					gp_1[ig1_1*5+ig1_2] <= #1 shift_reg[ig1_1*25+ig1_2*5+0]+
-  					                          shift_reg[ig1_1*25+ig1_2*5+1]+
-  					                          shift_reg[ig1_1*25+ig1_2*5+2]+
-  					                          shift_reg[ig1_1*25+ig1_2*5+3]+
-  					                          shift_reg[ig1_1*25+ig1_2*5+4];
-  				end
-  			end
-  		end
-  	end
+    if(reset) begin
+      for (z=0; z<100; z=z+1) begin
+        gp_1[z] <= #1 0;
+      end
+    end else begin
+      for (ig1_1=0; ig1_1<20; ig1_1=ig1_1+1) begin
+        for (ig1_2=0; ig1_2<5; ig1_2=ig1_2+1) begin
+          if (push_7) begin
+            gp_1[ig1_1*5+ig1_2] <= #1 shift_reg[ig1_1*25+ig1_2*5+0]+
+                                      shift_reg[ig1_1*25+ig1_2*5+1]+
+                                      shift_reg[ig1_1*25+ig1_2*5+2]+
+                                      shift_reg[ig1_1*25+ig1_2*5+3]+
+                                      shift_reg[ig1_1*25+ig1_2*5+4];
+          end
+        end
+      end
+    end
   end
   
   //  1001111100   0110000011:  The start sync signal
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		for (ig2=0; ig2<20; ig2=ig2+1) begin
-  			gp_2[ig2] <= #1 0;
-  		end
-  	end else begin
-  		if (push_8) begin
-  			gp_2[0]  <= #1   gp_1[0] +gp_1[1] +gp_1[2] +gp_1[3] +gp_1[4]; // 5*5=25 samples
-  			gp_2[1]  <= #1   gp_1[5] +gp_1[6] +gp_1[7] +gp_1[8] +gp_1[9];
-  			gp_2[2]  <= #1 ~(gp_1[10]+gp_1[11]+gp_1[12]+gp_1[13]+gp_1[14]) + 32'd1;
-  			gp_2[3]  <= #1 ~(gp_1[15]+gp_1[16]+gp_1[17]+gp_1[18]+gp_1[19]) + 32'd1;
-  			gp_2[4]  <= #1 ~(gp_1[20]+gp_1[21]+gp_1[22]+gp_1[23]+gp_1[24]) + 32'd1;
-  			gp_2[5]  <= #1 ~(gp_1[25]+gp_1[26]+gp_1[27]+gp_1[28]+gp_1[29]) + 32'd1;
-  			gp_2[6]  <= #1 ~(gp_1[30]+gp_1[31]+gp_1[32]+gp_1[33]+gp_1[34]) + 32'd1;
-  			gp_2[7]  <= #1   gp_1[35]+gp_1[36]+gp_1[37]+gp_1[38]+gp_1[39];
-  			gp_2[8]  <= #1   gp_1[40]+gp_1[41]+gp_1[42]+gp_1[43]+gp_1[44];
-  			gp_2[9]  <= #1 ~(gp_1[45]+gp_1[46]+gp_1[47]+gp_1[48]+gp_1[49]) + 32'd1;
-  			gp_2[10] <= #1 ~(gp_1[50]+gp_1[51]+gp_1[52]+gp_1[53]+gp_1[54]) + 32'd1;
-  			gp_2[11] <= #1 ~(gp_1[55]+gp_1[56]+gp_1[57]+gp_1[58]+gp_1[59]) + 32'd1;
-  			gp_2[12] <= #1   gp_1[60]+gp_1[61]+gp_1[62]+gp_1[63]+gp_1[64];
-  			gp_2[13] <= #1   gp_1[65]+gp_1[66]+gp_1[67]+gp_1[68]+gp_1[69];
-  			gp_2[14] <= #1   gp_1[70]+gp_1[71]+gp_1[72]+gp_1[73]+gp_1[74];
-  			gp_2[15] <= #1   gp_1[75]+gp_1[76]+gp_1[77]+gp_1[78]+gp_1[79];
-  			gp_2[16] <= #1   gp_1[80]+gp_1[81]+gp_1[82]+gp_1[83]+gp_1[84];
-  			gp_2[17] <= #1 ~(gp_1[85]+gp_1[86]+gp_1[87]+gp_1[88]+gp_1[89]) + 32'd1;
-  			gp_2[18] <= #1 ~(gp_1[90]+gp_1[91]+gp_1[92]+gp_1[93]+gp_1[94]) + 32'd1;
-  			gp_2[19] <= #1   gp_1[95]+gp_1[96]+gp_1[97]+gp_1[98]+gp_1[99];
-  		end
-  	end
-  end
-
-  always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		for (ig3=0; ig3<4; ig3=ig3+1) begin
-  			gp_3[ig3] <= #1 0;
-  		end
-  	end else begin
-  		if (push_9) begin
-  			gp_3[0] <= #1 gp_2[0] +gp_2[1] +gp_2[2] +gp_2[3] +gp_2[4];
-  			gp_3[1] <= #1 gp_2[5] +gp_2[6] +gp_2[7] +gp_2[8] +gp_2[9];
-  			gp_3[2] <= #1 gp_2[10]+gp_2[11]+gp_2[12]+gp_2[13]+gp_2[14];
-  			gp_3[3] <= #1 gp_2[15]+gp_2[16]+gp_2[17]+gp_2[18]+gp_2[19];
-  		end
-  	end
-  end
-
-  always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		gp_4 <= #1 0;
-  	end else begin
-  		if (push_10) begin
-  			gp_4 <= #1 gp_3[0]+gp_3[1]+gp_3[2]+gp_3[3];
-  		end
-  	end
-  end
-
-  always @ (negedge clk or posedge reset) begin
-    if (reset) begin
-      sync_sig <= #1 0;
+    if(reset) begin
+      for (ig2=0; ig2<20; ig2=ig2+1) begin
+        gp_2[ig2] <= #1 0;
+      end
     end else begin
-      if (push_11) begin
-        // ~500*(+/-10000) each output
-        if (($signed(gp_4)>=$signed(32'd4950000)) || ($signed(gp_4)<$signed(-32'd4950000))) begin
-          sync_sig <= #1 1;
-        end else
-          sync_sig <= #1 0;
+      if (push_8) begin
+        gp_2[0]  <= #1   gp_1[0] +gp_1[1] +gp_1[2] +gp_1[3] +gp_1[4]; // 5*5=25 samples
+        gp_2[1]  <= #1   gp_1[5] +gp_1[6] +gp_1[7] +gp_1[8] +gp_1[9];
+        gp_2[2]  <= #1 ~(gp_1[10]+gp_1[11]+gp_1[12]+gp_1[13]+gp_1[14]) + 32'd1;
+        gp_2[3]  <= #1 ~(gp_1[15]+gp_1[16]+gp_1[17]+gp_1[18]+gp_1[19]) + 32'd1;
+        gp_2[4]  <= #1 ~(gp_1[20]+gp_1[21]+gp_1[22]+gp_1[23]+gp_1[24]) + 32'd1;
+        gp_2[5]  <= #1 ~(gp_1[25]+gp_1[26]+gp_1[27]+gp_1[28]+gp_1[29]) + 32'd1;
+        gp_2[6]  <= #1 ~(gp_1[30]+gp_1[31]+gp_1[32]+gp_1[33]+gp_1[34]) + 32'd1;
+        gp_2[7]  <= #1   gp_1[35]+gp_1[36]+gp_1[37]+gp_1[38]+gp_1[39];
+        gp_2[8]  <= #1   gp_1[40]+gp_1[41]+gp_1[42]+gp_1[43]+gp_1[44];
+        gp_2[9]  <= #1 ~(gp_1[45]+gp_1[46]+gp_1[47]+gp_1[48]+gp_1[49]) + 32'd1;
+        gp_2[10] <= #1 ~(gp_1[50]+gp_1[51]+gp_1[52]+gp_1[53]+gp_1[54]) + 32'd1;
+        gp_2[11] <= #1 ~(gp_1[55]+gp_1[56]+gp_1[57]+gp_1[58]+gp_1[59]) + 32'd1;
+        gp_2[12] <= #1   gp_1[60]+gp_1[61]+gp_1[62]+gp_1[63]+gp_1[64];
+        gp_2[13] <= #1   gp_1[65]+gp_1[66]+gp_1[67]+gp_1[68]+gp_1[69];
+        gp_2[14] <= #1   gp_1[70]+gp_1[71]+gp_1[72]+gp_1[73]+gp_1[74];
+        gp_2[15] <= #1   gp_1[75]+gp_1[76]+gp_1[77]+gp_1[78]+gp_1[79];
+        gp_2[16] <= #1   gp_1[80]+gp_1[81]+gp_1[82]+gp_1[83]+gp_1[84];
+        gp_2[17] <= #1 ~(gp_1[85]+gp_1[86]+gp_1[87]+gp_1[88]+gp_1[89]) + 32'd1;
+        gp_2[18] <= #1 ~(gp_1[90]+gp_1[91]+gp_1[92]+gp_1[93]+gp_1[94]) + 32'd1;
+        gp_2[19] <= #1   gp_1[95]+gp_1[96]+gp_1[97]+gp_1[98]+gp_1[99];
       end
     end
   end
+
+  always @(negedge clk or posedge reset) begin
+    if(reset) begin
+      for (ig3=0; ig3<4; ig3=ig3+1) begin
+        gp_3[ig3] <= #1 0;
+      end
+    end else begin
+      if (push_9) begin
+        gp_3[0] <= #1 gp_2[0] +gp_2[1] +gp_2[2] +gp_2[3] +gp_2[4];
+        gp_3[1] <= #1 gp_2[5] +gp_2[6] +gp_2[7] +gp_2[8] +gp_2[9];
+        gp_3[2] <= #1 gp_2[10]+gp_2[11]+gp_2[12]+gp_2[13]+gp_2[14];
+        gp_3[3] <= #1 gp_2[15]+gp_2[16]+gp_2[17]+gp_2[18]+gp_2[19];
+      end
+    end
+  end
+
+  always @(negedge clk or posedge reset) begin
+    if(reset) begin
+      gp_4 <= #1 0;
+    end else begin
+      if (push_10) begin
+        gp_4 <= #1 gp_3[0]+gp_3[1]+gp_3[2]+gp_3[3];
+      end
+    end
+  end
+
 
 /*State machine for decoding*/
   reg         [2:0] state, next_state;
@@ -388,6 +326,71 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
   reg               Syncout, Syncout_d;
   integer           cnt, cnt_d;
   integer           Bcnt, Bcnt_d;
+
+  integer maxSyncSig, maxSyncSig_d;
+  always @(*) begin
+    maxSyncSig_d = maxSyncSig;
+  end  
+  always @ (negedge clk or posedge reset) begin
+    if (reset) begin
+      sync_sig   <= #1 0;
+      maxSyncSig <= #1 32'd4900000;
+    end else begin
+      if (push_11 && (cnt==0)) begin
+        // ~500*(+/-10000) each output
+/*
+        if ({gp_4[31], maxSyncSig[31]} == 2'b00) begin
+            if (gp_4 >= maxSyncSig) begin
+              sync_sig   <= #1 1;
+              maxSyncSig <= #1 gp_4;  
+            end else begin
+              sync_sig   <= #1 0;
+              maxSyncSig <= #1 maxSyncSig_d;  
+            end
+        end
+        else if ({gp_4[31], maxSyncSig[31]} == 2'b01) begin
+            if (gp_4 >= (-maxSyncSig)) begin
+              sync_sig   <= #1 1;
+              maxSyncSig <= #1 gp_4;  
+            end else begin
+              sync_sig   <= #1 0;
+              maxSyncSig <= #1 maxSyncSig_d;  
+            end
+        end
+        else if ({gp_4[31], maxSyncSig[31]} == 2'b10) begin
+            if ((-gp_4) >= maxSyncSig) begin
+              sync_sig   <= #1 1;
+              maxSyncSig <= #1 gp_4;  
+            end else begin
+              sync_sig   <= #1 0;
+              maxSyncSig <= #1 maxSyncSig_d;  
+            end
+        end
+        else if ({gp_4[31], maxSyncSig[31]} == 2'b11) begin
+            if (gp_4 <= maxSyncSig) begin
+              sync_sig   <= #1 1;
+              maxSyncSig <= #1 gp_4;  
+            end else begin
+              sync_sig   <= #1 0;
+              maxSyncSig <= #1 maxSyncSig_d;  
+            end
+        end
+      else begin
+        sync_sig   <= #1 0;
+        maxSyncSig <= #1 maxSyncSig_d;
+      end
+*/
+
+//        if ((gp_4>=5050000) || (gp_4<=(-5050000))) begin
+        if ((gp_4>=4950000) || (gp_4<=(-4950000))) begin
+          sync_sig   <= #1 1;
+        end else begin
+          sync_sig <= #1 0;
+        end
+      
+      end
+    end
+  end
   
   // 5/6 Encode
   function [4:0] decL(input reg [5:0] dinL);
@@ -599,33 +602,33 @@ module costas (clk, reset, pushADC, ADC, pushByte, Byte, Sync, lastByte, stopIn)
 /*State machine for decoding*/
 
   always @(negedge clk or posedge reset) begin
-  	if(reset) begin
-  		push_0  <= #1 0;
-  		push_1  <= #1 0;
-  		push_2  <= #1 0;
-  		push_3  <= #1 0;
-  		push_4  <= #1 0;
-  		push_5  <= #1 0;
-  		push_6  <= #1 0;
-  		push_7  <= #1 0;
-  		push_8  <= #1 0;
-  		push_9  <= #1 0;
+    if(reset) begin
+      push_0  <= #1 0;
+      push_1  <= #1 0;
+      push_2  <= #1 0;
+      push_3  <= #1 0;
+      push_4  <= #1 0;
+      push_5  <= #1 0;
+      push_6  <= #1 0;
+      push_7  <= #1 0;
+      push_8  <= #1 0;
+      push_9  <= #1 0;
       push_10 <= #1 0;
       push_11 <= #1 0;
-  	end else begin
-  		push_0  <= #1 pushADC;
-  		push_1  <= #1 push_0;
-  		push_2  <= #1 push_1;
-  		push_3  <= #1 push_2;
-  		push_4  <= #1 push_3;
-  		push_5  <= #1 push_4;
-  		push_6  <= #1 push_5;
-  		push_7  <= #1 push_6;
-  		push_8  <= #1 push_7;
-  		push_9  <= #1 push_8;
+    end else begin
+      push_0  <= #1 pushADC;
+      push_1  <= #1 push_0;
+      push_2  <= #1 push_1;
+      push_3  <= #1 push_2;
+      push_4  <= #1 push_3;
+      push_5  <= #1 push_4;
+      push_6  <= #1 push_5;
+      push_7  <= #1 push_6;
+      push_8  <= #1 push_7;
+      push_9  <= #1 push_8;
       push_10 <= #1 push_9;
       push_11 <= #1 push_10;
-  	end
+    end
   end
 
   always @(negedge clk or posedge reset) begin
